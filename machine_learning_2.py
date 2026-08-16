@@ -7,12 +7,13 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_iris
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score,f1_score,precision_score, recall_score
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelEncoder,StandardScaler
-from sklearn.linear_model import Lasso,LinearRegression
+from sklearn.linear_model import Lasso,LinearRegression, LogisticRegression
+
 
 
 
@@ -110,10 +111,13 @@ X_train_val, X_test ,y_train_val, y_test=train_test_split(X,y,test_size=0.2, ran
 
 X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.25,random_state=42,stratify=y_train_val)
 
+
+
+
 # 1.model
 knn = KNeighborsClassifier(n_neighbors=3)
 knn.fit(X_train, y_train)
-y_pred_val=knn.predict(X_val)
+y_pred_val_knn=knn.predict(X_val)
 y_pred_KNN=knn.predict(X_test)
 
 # 2.model
@@ -124,19 +128,92 @@ X_train_scaled = scaler.fit_transform(X_train)
 X_val_scaled = scaler.transform(X_val)
 X_test_scaled = scaler.transform(X_test)
 
-linear = LinearRegression()
-linear.fit(X_train_scaled, y_train)
-
-y_pred_val = linear.predict(X_val_scaled)
-y_pred_linear = linear.predict(X_test_scaled)
+logistic = LogisticRegression(max_iter=200)
+logistic.fit(X_train_scaled, y_train)
+y_pred_val_logistic = logistic.predict(X_val_scaled)
+y_pred_logistic = logistic.predict(X_test_scaled)
 
 # 3.model
 decision = DecisionTreeClassifier()
 decision.fit(X_train_scaled, y_train)
 
-y_pred_val = decision.predict(X_val_scaled)
+y_pred_val_tree = decision.predict(X_val_scaled)
 y_pred_tree = decision.predict(X_test_scaled)
 
+print("--- ACCURACY ---")
+print(f"KNN: {accuracy_score(y_val, y_pred_val_knn):.4f}")
+print(f"Logistic Regression: {accuracy_score(y_val, y_pred_val_logistic):.4f}")
+print(f"Decision Tree: {accuracy_score(y_val, y_pred_val_tree):.4f}")
+
+print("\n--- F1 SCORE ---")
+print(f"KNN: {f1_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
+print(f"Logistic Regression: {f1_score(y_val, y_pred_val_logistic, average='weighted'):.4f}")
+print(f"Decision Tree: {f1_score(y_val, y_pred_val_tree, average='weighted'):.4f}")
+
+print("\n--- PRECISION ---")
+print(f"KNN: {precision_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
+print(f"Logistic Regression: {precision_score(y_val, y_pred_val_logistic, average='weighted'):.4f}")
+print(f"Decision Tree: {precision_score(y_val, y_pred_val_tree, average='weighted'):.4f}")
+
+print("\n--- RECALL ---")
+print(f"KNN: {recall_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
+print(f"Logistic Regression: {recall_score(y_val, y_pred_val_logistic, average='weighted'):.4f}")
+print(f"Decision Tree: {recall_score(y_val, y_pred_val_tree, average='weighted'):.4f}")
 
 
+"""
+--- ACCURACY ---
+KNN: 0.9655
+Logistic Regression: 0.9655
+Decision Tree: 0.9310
+
+--- F1 SCORE ---
+KNN: 0.9654
+Logistic Regression: 0.9654
+Decision Tree: 0.9303
+
+--- PRECISION ---
+KNN: 0.9687
+Logistic Regression: 0.9687
+Decision Tree: 0.9425
+
+--- RECALL ---
+KNN: 0.9655
+Logistic Regression: 0.9655
+Decision Tree: 0.9310
+
+
+Veri setimize en uygun modeller logistic regression ve KNN şeklinde yorumlayabiliriz ben kullanım kolaylığından dolayı KNN ile devam edeceğim KNN için bir hiperparametre ayarlaması yapalım
+
+"""
+
+grid_params = {"n_neighbors": [3, 5, 7, 10]}
+
+grid = GridSearchCV(
+    estimator= KNeighborsClassifier(),
+    param_grid=grid_params,
+    cv=5,
+    scoring="accuracy"
+)
+
+grid.fit(X_train_scaled, y_train)
+
+print(f"\nEn iyi K değeri: {grid.best_params_['n_neighbors']}")
+
+y_pred_grid = grid.predict(X_test_scaled)
+
+print(f"Accuracy: {accuracy_score(y_test, y_pred_grid):.4f}")
+print(f"F1: {f1_score(y_test, y_pred_grid, average='weighted'):.4f}")
+print(f"Recall: {recall_score(y_test, y_pred_grid, average='weighted'):.4f}")
+print(f"Precision: {precision_score(y_test, y_pred_grid, average='weighted'):.4f}")
+
+"""
+En iyi K değeri: 3
+Accuracy: 0.9333
+F1: 0.9327
+Recall: 0.9333
+Precision: 0.9444
+
+Bizde k değeri için 3 kullanmıştık yine aynı setimden devam edeceğim
+"""
 
