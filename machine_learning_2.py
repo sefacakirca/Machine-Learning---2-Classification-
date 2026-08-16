@@ -7,7 +7,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_iris
-from sklearn.metrics import accuracy_score,f1_score,precision_score, recall_score
+from sklearn.metrics import accuracy_score,f1_score,precision_score, recall_score, confusion_matrix
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -216,4 +216,8 @@ Precision: 0.9444
 
 Bizde k değeri için 3 kullanmıştık yine aynı setimden devam edeceğim
 """
+print(f"KNN Accuracy: {accuracy_score(y_val, y_pred_val_knn):.4f}")
+print(f"KNN F1: {f1_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
+print(f"KNN Precision: {precision_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
+print(f"KNN Recall: {recall_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
 
