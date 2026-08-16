@@ -5,14 +5,19 @@
 
 """
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.datasets import load_iris
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder,StandardScaler
+from sklearn.linear_model import Lasso,LinearRegression
 
-iris = load_iris(return_X_y=True)
+
+
+
+iris = load_iris()
 
 df_iris = pd.DataFrame(data=iris.data, columns=iris.feature_names)
 df_iris["target"] = iris.target
@@ -94,9 +99,44 @@ for sutun in sayisal_sutunlar:
 df_iris=df_iris.loc[~aykiri_deger_maskesi].copy()
 df_iris.reset_index(drop=True, inplace=True)
 
+df_iris["sepal_area"] = df_iris["sepal length (cm)"] * df_iris["sepal width (cm)"]
+df_iris["petal_area"] = df_iris["petal length (cm)"] * df_iris["petal width (cm)"]
 
+
+
+X=df_iris.drop(["target"], axis=1)
+y=df_iris["target"]
 X_train_val, X_test ,y_train_val, y_test=train_test_split(X,y,test_size=0.2, random_state=42, stratify=y)
 
 X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.25,random_state=42,stratify=y_train_val)
+
+# 1.model
+knn = KNeighborsClassifier(n_neighbors=3)
+knn.fit(X_train, y_train)
+y_pred_val=knn.predict(X_val)
+y_pred_KNN=knn.predict(X_test)
+
+# 2.model
+scaler = StandardScaler()
+
+X_train_scaled = scaler.fit_transform(X_train)
+
+X_val_scaled = scaler.transform(X_val)
+X_test_scaled = scaler.transform(X_test)
+
+linear = LinearRegression()
+linear.fit(X_train_scaled, y_train)
+
+y_pred_val = linear.predict(X_val_scaled)
+y_pred_linear = linear.predict(X_test_scaled)
+
+# 3.model
+decision = DecisionTreeClassifier()
+decision.fit(X_train_scaled, y_train)
+
+y_pred_val = decision.predict(X_val_scaled)
+y_pred_tree = decision.predict(X_test_scaled)
+
+
 
 
