@@ -1,7 +1,28 @@
 """
+Bu projenin amacı, Iris çiçeklerine ait sepal ve petal ölçümlerini
+kullanarak çiçeğin hangi Iris türüne ait olduğunu tahmin etmektir.
 
+Problem türü: Çok sınıflı sınıflandırma (multiclass classification)
 
+Kullanılan kütüphaneler:
+- pandas: Veri analizi ve DataFrame işlemleri
+- matplotlib: Veri görselleştirme
+- scikit-learn: Veri ön işleme, modelleme ve model değerlendirme
 
+Kullanılan modeller:
+- K-Nearest Neighbors (KNN)
+- Logistic Regression
+- Decision Tree
+
+Çalıştırma adımları:
+1. Iris veri seti yüklenir.
+2. Veri seti incelenir ve eksik/aykırı değerler kontrol edilir.
+3. Yeni öznitelikler oluşturulur ve öznitelik seçimi yapılır.
+4. Veri train, validation ve test kümelerine ayrılır.
+5. Üç farklı sınıflandırma modeli eğitilir.
+6. Validation sonuçları karşılaştırılır.
+7. En başarılı model için GridSearchCV ile hiperparametre ayarlaması yapılır.
+8. Seçilen model test verisi üzerinde değerlendirilir.
 
 """
 import pandas as pd
@@ -13,7 +34,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelEncoder,StandardScaler
 from sklearn.linear_model import Lasso,LinearRegression, LogisticRegression
-
+from sklearn.pipeline import Pipeline
 
 
 
@@ -77,9 +98,9 @@ petal length (cm)    0
 petal width (cm)     0
 target               0
 """
-sayisal_sutunlar = df_iris.select_dtypes(include=["int64","float64"])
+sayisal_sutunlar = df_iris.select_dtypes(include=["int64","float64"]).columns
 
-aykiri_deger_maskesi = pd.Series(False)
+aykiri_deger_maskesi = pd.Series(False, index=df_iris.index)
 
 for sutun in sayisal_sutunlar:
 
@@ -113,7 +134,6 @@ X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test
 
 
 
-
 # 1.model
 knn = KNeighborsClassifier(n_neighbors=3)
 knn.fit(X_train, y_train)
@@ -139,6 +159,19 @@ decision.fit(X_train_scaled, y_train)
 
 y_pred_val_tree = decision.predict(X_val_scaled)
 y_pred_tree = decision.predict(X_test_scaled)
+
+feature_importance = pd.Series(decision.feature_importances_,index=X_train.columns).sort_values(ascending=False)
+
+print(f"feature importance: {feature_importance}")
+"""
+petal length (cm)    0.507422
+petal_area           0.444134
+sepal length (cm)    0.031195
+petal width (cm)     0.017248
+sepal width (cm)     0.000000
+sepal_area           0.000000
+"""
+selected_features = feature_importance[feature_importance > 0].index
 
 print("--- ACCURACY ---")
 print(f"KNN: {accuracy_score(y_val, y_pred_val_knn):.4f}")
@@ -186,8 +219,13 @@ Decision Tree: 0.9310
 Veri setimize en uygun modeller logistic regression ve KNN şeklinde yorumlayabiliriz ben kullanım kolaylığından dolayı KNN ile devam edeceğim KNN için bir hiperparametre ayarlaması yapalım
 
 """
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("knn", KNeighborsClassifier())
+])
 
-grid_params = {"n_neighbors": [3, 5, 7, 10]}
+
+grid_params = {"n_neighbors": range(1,11)}
 
 grid = GridSearchCV(
     estimator= KNeighborsClassifier(),
@@ -216,8 +254,30 @@ Precision: 0.9444
 
 Bizde k değeri için 3 kullanmıştık yine aynı setimden devam edeceğim
 """
-print(f"KNN Accuracy: {accuracy_score(y_val, y_pred_val_knn):.4f}")
+print(f"\nKNN Accuracy: {accuracy_score(y_val, y_pred_val_knn):.4f}")
 print(f"KNN F1: {f1_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
 print(f"KNN Precision: {precision_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
 print(f"KNN Recall: {recall_score(y_val, y_pred_val_knn, average='weighted'):.4f}")
 
+"""
+KNN Accuracy: 0.9655
+KNN F1: 0.9654
+KNN Precision: 0.9687
+KNN Recall: 0.9655
+"""
+
+"""
+Model değerlendirmesi:
+
+Validation sonuçlarına göre KNN ve Logistic Regression modelleri
+Decision Tree modelinden daha başarılı sonuçlar vermiştir.
+KNN kullanım kolaylığı ve yüksek performansı nedeniyle nihai model
+olarak seçilmiştir. GridSearchCV sonucunda en iyi K değeri 3 olarak belirlenmiştir.
+Final test sonuçlarında model yüksek accuracy, precision, recall ve
+F1-score değerleri elde etmiştir. Özellikle KNN modelinin veri setindeki sınıfları ayırt etmede başarılı
+olduğu görülmüştür. Modelin sınırlılığı, Iris veri setinin küçük ve görece basit bir veri
+seti olmasıdır. Daha büyük, gürültülü veya karmaşık veri setlerinde
+aynı performansın elde edilmesi garanti değildir. Bu tür durumlarda
+Random Forest, SVM veya daha gelişmiş ensemble yöntemleri
+değerlendirilebilir.
+"""
